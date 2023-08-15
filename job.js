@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import rawJson from "./data.json" assert { type: "json" };
 
-// state i'll use
 const aggregateData = {};
 let keys;
 let result = [];
@@ -9,24 +8,22 @@ let result = [];
 // aggregate totals
 rawJson.forEach((item) => {
   const {
-    "Grant Code": grantCode,
+    "Grant Code": incomingGrantCode,
     "Transaction Month": postingMonth,
     "Transaction Year": postingYear,
     "Project Code": projectCode,
     "Cost Center": costCenter,
-    // Unit: unit,
     Currency: currency,
     "Sum of Actual": sumOfActual,
     Unit: unit,
   } = item;
 
-  const grantCodeCleanME = grantCode.replace(/[ME]$/, "");
-  const newGrantCode = `${grantCodeCleanME}_default`;
-  const externalId = `${newGrantCode}_${projectCode}_${costCenter}_${postingMonth}_${postingYear}_${unit}`;
+  const grantCode = incomingGrantCode.replace(/(ME)$/, "_default");
+  const externalId = `${grantCode}_${projectCode}_${costCenter}_${postingMonth}_${postingYear}_${unit}`;
 
   if (!aggregateData[externalId]) {
     aggregateData[externalId] = {
-      grantCode: newGrantCode,
+      grantCode: grantCode,
       projectCode,
       costCenter,
       postingMonth,
@@ -48,7 +45,7 @@ const minified = {
   keys,
   data: Object.values(aggregateData).map(Object.values),
 };
-console.log(minified);
+
 // output the converted data
 fs.writeFileSync("./out/converted.json", JSON.stringify(minified));
 
@@ -61,7 +58,7 @@ minified.data.forEach((item) => {
   }, {});
 
   const {
-    grantCode: newGrantCode, // preserving this but it could be mapped
+    grantCode,
     projectCode,
     costCenter,
     postingMonth,
@@ -71,14 +68,14 @@ minified.data.forEach((item) => {
     sumOfActual,
   } = obj;
 
-  const externalId = `${newGrantCode}_${projectCode}_${costCenter}_${postingMonth}_${postingYear}_${unit}`;
+  const externalId = `${grantCode}_${projectCode}_${costCenter}_${postingMonth}_${postingYear}_${unit}`;
 
   const mapped = {
     ExternalId__c: externalId,
     ampi__Type__c: "Expenditure",
-    Name: `${newGrantCode}_${projectCode}_${costCenter}_${postingMonth}_${postingYear}`,
-    "ampi__Budget__r.External_Id__c": `${newGrantCode}_${postingYear}_${unit}`,
-    "ampi__Reporting_Period__r.External_Id__c": `${newGrantCode}_${postingYear}_${postingMonth}_Monthly`,
+    Name: `${grantCode}_${projectCode}_${costCenter}_${postingMonth}_${postingYear}`,
+    "ampi__Budget__r.External_Id__c": `${grantCode}_${postingYear}_${unit}`,
+    "ampi__Reporting_Period__r.External_Id__c": `${grantCode}_${postingYear}_${postingMonth}_Monthly`,
     Local_Currency__c: currency,
     Amount_Actual_Local_Currency__c: sumOfActual,
     "Project_Code__r.Name": projectCode,
